@@ -5,7 +5,8 @@
   "main": "formaline.js",
   "scripts": {
     "clean": "rimraf formaline.js node_modules package-lock.json",
-    "build": "tsc --target es2017 formaline.ts --outFile /dev/stdout | jsmin -o formaline.js"
+    "build": "tsc --target es2017 formaline.ts --outFile /dev/stdout | jsmin -o formaline.js",
+    "watch": "tsc -w --target es2017 formaline.ts"
   },
   "author": "Avner Braverman",
   "license": "MIT",

@@ -1,0 +1,18 @@
+{
+  "name": "formaline",
+  "version": "0.0.1",
+  "description": "Frontend form builder",
+  "main": "formaline.js",
+  "scripts": {
+    "clean": "rimraf formaline.js node_modules package-lock.json",
+    "build": "tsc --target es2017 formaline.ts --outFile /dev/stdout | jsmin -o formaline.js"
+  },
+  "author": "Avner Braverman",
+  "license": "MIT",
+  "devDependencies": {
+    "jsmin": "^1.0.1",
+    "rimraf": "^2.6.3",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.2"
+  }
+}

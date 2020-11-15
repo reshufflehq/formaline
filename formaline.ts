@@ -273,10 +273,12 @@
         $code.setAttribute('for', 'phone')
         this.stage($code)
       }
+      return this
     }
 
     public text(name: string, label: string) {
       this.stage(this.input('text', /^(?!\s*$).+/, name, label))
+      return this
     }
 
     public getData() {

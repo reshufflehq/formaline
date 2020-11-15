@@ -14,6 +14,14 @@ form.text('name', 'Your name')
 form.phone('phone', 'Your phone number')
 ```
 
+or using cascading initialization:
+
+```js
+formaline({ ... })
+  .text('name', 'Your name')
+  .phone('phone', 'Your phone number')
+```
+
 ### Validation
 
 Formaline supports validation for fields like phone numbers. While it

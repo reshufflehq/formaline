@@ -122,20 +122,20 @@
       return res.text()
     }
 
-    private defer(
-      promise: Promise<string | void>,
-      onSuccess?: (response: string) => void,
-    ) {
-      const baseline = this.statestamp
+    private defer(promise: any, onSuccess?: (response: string) => void) {
       const state = this.state!
-      promise.then((res: any) => {
+      const baseline = this.statestamp
+      const success = (res: any) => {
         this.setState(state + 1, baseline)
         if (typeof onSuccess === 'function') {
           onSuccess(res)
         }
-      }).catch(() => {
-        this.setState(-state, baseline)
-      })
+      }
+      if (promise instanceof Promise) {
+        promise.then(success).catch(() => this.setState(-state, baseline))
+      } else {
+        success(promise)
+      }
     }
 
     private onSubmit() {

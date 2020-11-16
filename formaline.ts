@@ -292,6 +292,31 @@
 
     // Fields /////////////////////////////////////////////
 
+    public check(name: string, label: string) {
+      const $input = this.input('hidden', /^yes$/, name)
+
+      const $button = createElement('button')
+      $button.addEventListener('click', (event) => {
+        event.preventDefault()
+        if ($input.value === 'yes') {
+          $button.innerText = $input.value = ''
+        } else {
+          $button.innerHTML = '&check;'
+          $input.value = 'yes'
+        }
+        $input.dispatchEvent(new Event('input'))
+      })
+
+      this.stage(
+        createElement('div', { className: 'check' },
+          $input,
+          createElement('div', { className: 'label', innerText: label }),
+          $button,
+        )
+      )
+      return this
+    }
+
     public email(name: string, label: string) {
       this.stage(this.input('email', EMAIL, name, label))
       return this

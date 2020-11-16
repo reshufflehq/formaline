@@ -344,6 +344,7 @@
   function createElement(
     tag: string,
     options: Record<string, string | undefined> = {},
+    ...$children: HTMLElement[]
   ): HTMLElement {
     const $ = document.createElement(tag)
     for (const [key, value] of Object.entries(options)) {
@@ -354,6 +355,9 @@
           $.setAttribute(key, value)
         }
       }
+    }
+    for (const $c of $children) {
+      $.appendChild($c)
     }
     return $
   }

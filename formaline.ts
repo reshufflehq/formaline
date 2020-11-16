@@ -22,6 +22,40 @@
     '\\x0c\\x0e-\\x7f])+)\\])$'
   )
 
+  class Stage {
+    constructor(public readonly $: HTMLElement) {
+    }
+
+    public getAttribute(attr: string) {
+      return this.getInputElement().getAttribute(attr)
+    }
+
+    public getInputElement() {
+      if (this.$ instanceof HTMLInputElement) {
+        return this.$
+      }
+      if (this.$.firstChild instanceof HTMLInputElement) {
+        return this.$.firstChild
+      }
+      throw new Error('No input element')
+    }
+
+    public getName() {
+      try {
+        return this.getInputElement().name
+      } catch {}
+    }
+
+    public getValue() {
+      return this.getInputElement().value
+    }
+
+    public isInput() {
+      return this.$ instanceof HTMLInputElement ||
+        this.$.firstChild instanceof HTMLInputElement
+    }
+  }
+
   interface Options {
     onValidate?: (name: string, value: string) => Promise<string | void>
     validateEndpoint?: string
@@ -36,7 +70,7 @@
     private $submit: HTMLElement
     private $success: HTMLElement
     private $error: HTMLElement
-    private $stages: HTMLElement[] = []
+    private stages: Stage[] = []
     private canValidate = false
     private cookies: Record<string, string> = {}
     private statestamp = 0
@@ -139,61 +173,51 @@
     }
 
     private onSubmit() {
-      if (this.state === undefined) {
+      const state = this.state
+      if (state === undefined) {
         throw new Error('Unable to submit form with no fields')
       }
 
-      if (this.state < 0) {
+      if (state < 0) {
         window.location.reload()
       }
 
       setDisabled(
-        this.state < this.$stages.length ?
-          this.$stages[this.state] :
-          this.$submit,
+        state < this.stages.length ? this.stages[state].$ : this.$submit,
         true,
       )
 
-      if (
-        0 < this.state &&
-        this.$stages[this.state - 1] instanceof HTMLInputElement
-      ) {
-        setTimeout(() => this.$stages[this.state! - 1].blur(), 0)
+      if (0 < state && this.stages[state - 1].isInput()) {
+        setTimeout(() => this.stages[state - 1].getInputElement().blur(), 0)
       }
 
-      if (this.state < this.$stages.length) {
-        if (this.state === 0) {
+      if (state < this.stages.length) {
+        if (state === 0) {
           throw new Error('No inputs to validate')
         }
-        const $input = this.$stages[this.state - 1]
-        if (!($input instanceof HTMLInputElement)) {
-          throw new Error(`Unable to validate non-input field: ${$input}`)
-        }
-        if ($input.value.trim().length === 0) {
-          throw new Error(`Unable to validate empty field: ${$input}`)
+        const name = this.stages[state - 1].getName()
+        const value = this.stages[state - 1].getValue()
+        if (value.trim().length === 0) {
+          throw new Error(`Unable to validate empty field: ${name}`)
         }
 
         const setCookie = (cookie: any) => {
           if (typeof cookie === 'string') {
-            this.cookies[$input.name] = cookie
+            this.cookies[name] = cookie
           }
         }
         if (this.options?.onValidate) {
-          this.defer(
-            this.options.onValidate($input.name, $input.value),
-            setCookie,
-          )
+          this.defer(this.options.onValidate(name, value), setCookie)
         }
         if (this.options?.validateEndpoint) {
-          const nv = { name: $input.name, value: $input.value }
           this.defer(
-            this.post(this.options.validateEndpoint, nv),
+            this.post(this.options.validateEndpoint, { name, value }),
             setCookie,
           )
         }
       }
 
-      if (this.state === this.$stages.length) {
+      if (state === this.stages.length) {
         const data = this.getData()
         if (this.options?.onSubmit) {
           this.defer(this.options?.onSubmit(data))
@@ -212,32 +236,29 @@
       this.statestamp++
 
       const abs = Math.abs(state)
-      for (let i = 0; i < this.$stages.length; i++) {
-        const $st = this.$stages[i]
+      for (let i = 0; i < this.stages.length; i++) {
+        const $st = this.stages[i].$
         setDisabled($st, false)
-        const dis = $st instanceof HTMLInputElement ? i <= abs : i === state
+        const dis = this.stages[i].isInput() ? i <= abs : i === state
         setDisplay($st, dis)
       }
-      setDisplay(this.$submit, this.$stages.length === state)
-      setDisplay(this.$success, this.$stages.length < state)
+      setDisplay(this.$submit, this.stages.length === state)
+      setDisplay(this.$success, this.stages.length < state)
       setDisplay(this.$error, state < 0)
 
       if (
-        this.$stages[state] instanceof HTMLInputElement && (
-          state === 0 || (
-            0 < state &&
-            !(this.$stages[state - 1] instanceof HTMLInputElement)
-          )
-        )
+        (0 <= state && state < this.stages.length) &&
+        this.stages[state].isInput() &&
+        (state === 0 || !this.stages[state - 1].isInput())
       ) {
-        setTimeout(() => this.$stages[state].focus(), 0)
+        setTimeout(() => this.stages[state].getInputElement().focus(), 0)
       }
     }
 
     private stage($: HTMLElement) {
       setDisplay($, false)
       this.$form.insertBefore($, this.$submit)
-      this.$stages.push($)
+      this.stages.push(new Stage($))
       if (this.state === undefined) {
         this.setState(0)
       }
@@ -248,9 +269,7 @@
         if (!/^[a-zA-Z]\w*$/.test(name)) {
           throw new Error(`Invalid name: ${name}`)
         }
-        if (this.$stages.find(
-          $ => $ instanceof HTMLInputElement && $.name === name
-        )) {
+        if (this.stages.find(s => s.getName() === name)) {
           throw new Error(`Duplicate field name: ${name}`)
         }
       }
@@ -263,7 +282,7 @@
         $input.setAttribute('placeholder', label)
       }
 
-      const index = this.$stages.length
+      const index = this.stages.length
       $input.addEventListener('input', () =>
         this.setState(regex.test($input.value) ? index + 1 : index)
       )
@@ -303,15 +322,12 @@
 
     public getData() {
       const data: Data = { fields: {}, codes: {}, cookies: this.cookies }
-      for (const $ of this.$stages) {
-        if ($ instanceof HTMLInputElement) {
-          if ($.name) {
-            data.fields[$.name] = $.value
-          } else {
-            const ref = $.getAttribute('for')
-            if (ref) {
-              data.codes[ref] = $.value
-            }
+      for (const stage of this.stages) {
+        if (stage.isInput()) {
+          if (stage.getName()) {
+            data.fields[stage.getName()] = stage.getValue()
+          } else if (stage.getAttribute('for')) {
+            data.codes[stage.getAttribute('for')] = stage.getValue()
           }
         }
       }

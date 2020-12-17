@@ -310,8 +310,8 @@
       this.stage(
         createElement('div', { className: 'check' },
           $input,
-          createElement('div', { className: 'label', innerText: label }),
           $button,
+          createElement('div', { className: 'label', innerText: label }),
         )
       )
       return this

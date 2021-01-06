@@ -62,13 +62,14 @@
     onSubmit?: (data: Data) => Promise<void>
     submitEndpoint?: string
     submitLabel?: string
-    successlabel?: string
+    onSuccess?: () => void
+    successLabel?: string
   }
 
   class Formaline {
     private $form: HTMLFormElement
     private $submit: HTMLElement
-    private $success: HTMLElement
+    private $success?: HTMLElement
     private $error: HTMLElement
     private stages: Stage[] = []
     private canValidate = false
@@ -107,7 +108,22 @@
         throw new Error(`Invalid submit endpoint option: ${se}`)
       }
       if (onSubmit && se) {
-        throw new Error('Only one of onSubmit and submitEndpoint allowed')
+        throw new Error(
+          'Only one of onSubmit and submitEndpoint options allowed'
+        )
+      }
+
+      const onSuccess = this.options?.onSuccess
+      if (
+        typeof onSuccess !== 'undefined' &&
+        typeof onSuccess !== 'function'
+      ) {
+        throw new Error(`Invalid onSuccess option: ${onSuccess}`)
+      }
+      if (onSuccess && this.options?.successLabel) {
+        throw new Error(
+          'Only one of onSuccess and successLabel options allowed'
+        )
       }
 
       this.$form = document.createElement('form')
@@ -119,11 +135,13 @@
       setDisplay(this.$submit, false)
       this.$form.appendChild(this.$submit)
 
-      this.$success = createElement('div', {
-        className: 'success',
-        innerText: options?.successlabel || 'Submitted',
-      })
-      this.$form.appendChild(this.$success)
+      if (!this.options?.onSuccess) {
+        this.$success = createElement('div', {
+          className: 'success',
+          innerText: options?.successLabel || 'Submitted',
+        })
+        this.$form.appendChild(this.$success)
+      }
 
       this.$error = createElement('div', { className: 'error' })
       this.$error.appendChild(createElement('div', {
@@ -223,7 +241,14 @@
           this.defer(this.options?.onSubmit(data))
         }
         if (this.options?.submitEndpoint) {
-          this.defer(this.post(this.options.submitEndpoint, data))
+          this.defer(
+            this.post(this.options.submitEndpoint, data),
+            () => {
+              if (this.options?.onSuccess) {
+                this.options?.onSuccess()
+              }
+            },
+          )
         }
       }
     }
@@ -243,7 +268,9 @@
         setDisplay($st, dis)
       }
       setDisplay(this.$submit, this.stages.length === state)
-      setDisplay(this.$success, this.stages.length < state)
+      if (this.$success) {
+        setDisplay(this.$success, this.stages.length < state)
+      }
       setDisplay(this.$error, state < 0)
 
       if (

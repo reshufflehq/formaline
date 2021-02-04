@@ -357,7 +357,7 @@
       this.stage(this.input('tel', /^\d{10}$/, name, label))
       if (validate) {
         this.stage(createElement('button', { innerText: 'Validate' }))
-        const $code = this.input('number', /^\d{4}$/)
+        const $code = this.input('number', /^\d{4}$/, undefined, 'Verification code')
         $code.setAttribute('autocomplete', 'one-time-code')
         $code.setAttribute('for', 'phone')
         this.stage($code)

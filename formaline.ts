@@ -23,36 +23,45 @@
   )
 
   class Stage {
-    constructor(public readonly $: HTMLElement) {
+    private readonly $input?: HTMLInputElement
+
+    constructor(
+      public readonly $: HTMLElement,
+      $input?: HTMLInputElement,
+      private readonly getInputValue?: () => string,
+    ) {
+      if ($input) {
+        this.$input = $input
+      } else if ($ instanceof HTMLInputElement) {
+        this.$input = $
+      } else if ($.firstChild instanceof HTMLInputElement) {
+        this.$input = $.firstChild
+      }
     }
 
     public getAttribute(attr: string) {
       return this.getInputElement().getAttribute(attr)
     }
 
-    public getInputElement() {
-      if (this.$ instanceof HTMLInputElement) {
-        return this.$
+    public getInputElement(): HTMLInputElement {
+      if (!this.$input) {
+        throw new Error('No input element')
       }
-      if (this.$.firstChild instanceof HTMLInputElement) {
-        return this.$.firstChild
-      }
-      throw new Error('No input element')
+      return this.$input
     }
 
     public getName() {
-      try {
-        return this.getInputElement().name
-      } catch {}
+      return this.$input && this.$input.name
     }
 
     public getValue() {
-      return this.getInputElement().value
+      return this.getInputValue ?
+        this.getInputValue() :
+        this.getInputElement().value
     }
 
     public isInput() {
-      return this.$ instanceof HTMLInputElement ||
-        this.$.firstChild instanceof HTMLInputElement
+      return this.$input !== undefined
     }
   }
 
@@ -282,16 +291,32 @@
       }
     }
 
-    private stage($: HTMLElement) {
-      setDisplay($, false)
+    private insertStage($: HTMLElement) {
       this.$form.insertBefore($, this.$submit)
-      this.stages.push(new Stage($))
+    }
+
+    private stage(
+      $: HTMLElement,
+      $input?: HTMLInputElement,
+      doNotInsert = false,
+      getInputValue?: () => string,
+    ) {
+      setDisplay($, false)
+      if (!doNotInsert) {
+        this.insertStage($)
+      }
+      this.stages.push(new Stage($, $input, getInputValue))
       if (this.state === undefined) {
         this.setState(0)
       }
     }
 
-    private input(type: string, regex: RegExp, name?: string, label?: string) {
+    private input(
+      type: string,
+      validator: RegExp | ((value: string) => boolean),
+      name?: string,
+      label?: string,
+    ) {
       if (name !== undefined) {
         if (!/^[a-zA-Z]\w*$/.test(name)) {
           throw new Error(`Invalid name: ${name}`)
@@ -309,10 +334,13 @@
         $input.setAttribute('placeholder', label)
       }
 
+      const isValid = validator instanceof RegExp ?
+        (value: string) => validator.test(value) :
+        validator
       const index = this.stages.length
-      $input.addEventListener('input', () =>
-        this.setState(regex.test($input.value) ? index + 1 : index)
-      )
+      $input.addEventListener('input', () => {
+        this.setState(isValid($input.value) ? index + 1 : index)
+      })
 
       return $input
     }
@@ -349,13 +377,37 @@
       return this
     }
 
-    public phone(name: string, label: string, validate = false) {
-      if (validate && !this.canValidate) {
+    public phone(
+      name: string,
+      label: string,
+      options: { validate?: boolean, country?: string } = {},
+    ) {
+      if (options.validate && !this.canValidate) {
         throw new Error('No means to validate: ' +
           'either onValidate or validateEndpoint options required')
       }
-      this.stage(this.input('tel', /^\d{10}$/, name, label))
-      if (validate) {
+      if (options.country && (window as any).intlTelInput) {
+        const $input = this.input('tel', isValid, name, label)
+        this.insertStage($input)
+        const iti = (window as any).intlTelInput($input, {
+          autoPlaceholder: 'aggressive',
+          initialCountry: options.country,
+          nationalMode: true,
+          utilsScript: './utils.js',
+        })
+        function isValid(value) {
+          return iti.isValidNumber()
+        }
+        this.stage(
+          $input.parentNode as HTMLElement,
+          $input,
+          true,
+          () => iti.getNumber()
+        )
+      } else {
+        this.stage(this.input('tel', /^\d{10}$/, name, label))
+      }
+      if (options.validate) {
         this.stage(createElement('button', { innerText: 'Validate' }))
         const $code = this.input('number', /^\d{4}$/, undefined, 'Verification code')
         $code.setAttribute('autocomplete', 'one-time-code')

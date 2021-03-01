@@ -1,0 +1,103 @@
+<html><head>
+<script src="formaline.js"></script>
+<title>Formaline Demo</title>
+<style>
+body {
+  background-color: #800;
+  background-position: top center;
+  background-size: cover;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+form {
+  display: inline-block;
+  width: 80%;
+}
+form input,
+form button {
+  border-radius: 5px;
+  border-style: none;
+  font-family: sans-serif;
+  font-size: 40px;
+  outline: none;
+  padding: 16px;
+}
+form input {
+  background: #fff;
+  display: block;
+  margin: 50px 0 50px 0;
+  text-align: left;
+  width: 100%;
+}
+form button {
+  border-radius: 40px;
+  background: #fff;
+  font-weight: 500;
+  width: 100%;
+}
+form input:disabled {
+  color: #999;
+  font-style: italic;
+}
+form button:disabled {
+  background: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+}
+form .check {
+  margin: 0 0 50px 0;
+  text-align: left;
+}
+form .check button {
+  background: transparent;
+  border-color: #fff;
+  border-style: solid;
+  border-width: 0.125em;
+  color: #fff;
+  height: 1.25em;
+  line-height: 1.1em;
+  overflow: hidden;
+  padding: 0;
+  text-align: center;
+  vertical-align: middle;
+  width: 1.25em;
+}
+form .check .label {
+  color: #fff;
+  display: inline-block;
+  font-family: sans-serif;
+  font-size: 40px;
+  padding: 0 0 0 0.5em;
+  vertical-align: middle;
+}
+form .success,
+form .errorMessage {
+  color: #fff;
+  font-family: sans-serif;
+  font-size: 30px;
+}
+form .errorMessage {
+  margin-bottom: 0.5em;
+}
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 60px #fff inset !important;
+  background-color: #fff !important;
+  background-clip: content-box !important;
+}
+</style></head>
+<body>
+<script type="text/javascript">
+const form = formaline(document.body, {
+  onValidate: console.log,
+  onSubmit: console.log,
+  submitLabel: 'Get Sample',
+  onSuccess: console.log,
+})
+// form.text('name', 'Your name')
+form.phone('phone', 'Your phone number')
+</script>
+</body>
+</html>

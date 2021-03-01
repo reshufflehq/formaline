@@ -25,7 +25,7 @@ formaline({ ... })
 ### Validation
 
 Formaline supports validation for fields like phone numbers. While it
-doe snot handle the backend part of the validation, it will display a
+does not handle the backend part of the validation, it will display a
 "Validate" button and a field for the user to enter the validation
 code:
 

@@ -393,7 +393,7 @@
           autoPlaceholder: 'aggressive',
           initialCountry: options.country,
           nationalMode: true,
-          utilsScript: './utils.js',
+          utilsScript: 'intlTelUtil.js',
         })
         function isValid(value) {
           return iti.isValidNumber()

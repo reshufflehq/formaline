@@ -62,12 +62,8 @@ interface Options {
   // Submission endpoint URL
   submitEndpoint?: string
 
-  // Label for the submit button (defaults to "Submit")
-  submitLabel?: string
-
-  // Label displayed when the form is successfuly
-  // submitted (defaults to "Submitted")
-  successlabel?: string
+  // Button and message labels (for internationalization)
+  labels?: string
 ```
 
 Callbacks and endpoints are multually exclusive. Each of validation and

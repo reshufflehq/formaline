@@ -65,14 +65,43 @@
     }
   }
 
+  interface Labels {
+    code?: string
+    error?: string
+    retry?: string
+    submit?: string
+    success?: string
+    validate?: string
+  }
+
+  const defaultLabels: Labels = {
+    code: 'Validation code',
+    error: 'Something went wrong',
+    retry: 'Try again',
+    submit: 'Submit',
+    success: 'Submitted',
+    validate: 'Validate',
+  }
+
+  class Language {
+    private labels: Labels
+
+    constructor(labels: Labels = {}) {
+      this.labels = { ...defaultLabels, ...labels }
+    }
+
+    get(name: string): string {
+      return this.labels[name]
+    }
+  }
+
   interface Options {
     onValidate?: (name: string, value: string) => Promise<string | void>
     validateEndpoint?: string
     onSubmit?: (data: Data) => Promise<void>
     submitEndpoint?: string
-    submitLabel?: string
     onSuccess?: () => void
-    successLabel?: string
+    labels?: Labels,
   }
 
   class Formaline {
@@ -85,6 +114,7 @@
     private cookies: Record<string, string> = {}
     private statestamp = 0
     private state?: number
+    private lang: Language
 
     constructor(private options?: Options) {
       const onValidate = this.options?.onValidate
@@ -129,17 +159,14 @@
       ) {
         throw new Error(`Invalid onSuccess option: ${onSuccess}`)
       }
-      if (onSuccess && this.options?.successLabel) {
-        throw new Error(
-          'Only one of onSuccess and successLabel options allowed'
-        )
-      }
+
+      this.lang = new Language(this.options?.labels)
 
       this.$form = document.createElement('form')
 
       this.$submit = createElement('button', {
         name: 'submit',
-        innerText: options?.submitLabel || 'Submit',
+        innerText: this.lang.get('submit'),
       })
       setDisplay(this.$submit, false)
       this.$form.appendChild(this.$submit)
@@ -147,7 +174,7 @@
       if (!this.options?.onSuccess) {
         this.$success = createElement('div', {
           className: 'success',
-          innerText: options?.successLabel || 'Submitted',
+          innerText: this.lang.get('success'),
         })
         this.$form.appendChild(this.$success)
       }
@@ -155,11 +182,11 @@
       this.$error = createElement('div', { className: 'error' })
       this.$error.appendChild(createElement('div', {
         className: 'errorMessage',
-        innerText: 'Something went wrong',
+        innerText: this.lang.get('error'),
       }))
       this.$error.appendChild(createElement('button', {
         className: 'errorButton',
-        innerText: 'Try again',
+        innerText: this.lang.get('retry'),
       }))
       this.$form.appendChild(this.$error)
 
@@ -408,8 +435,15 @@
         this.stage(this.input('tel', /^\d{10}$/, name, label))
       }
       if (options.validate) {
-        this.stage(createElement('button', { innerText: 'Validate' }))
-        const $code = this.input('number', /^\d{4}$/, undefined, 'Verification code')
+        this.stage(createElement('button', {
+          innerText: this.lang.get('validate'),
+        }))
+        const $code = this.input(
+          'number',
+          /^\d{4}$/,
+          undefined,
+          this.lang.get('code'),
+        )
         $code.setAttribute('autocomplete', 'one-time-code')
         $code.setAttribute('for', 'phone')
         this.stage($code)
